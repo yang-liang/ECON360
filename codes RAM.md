@@ -1,5 +1,5 @@
 # Gravity Equation
-### [Gravity Dataset Download](https://drive.google.com/drive/folders/1YvhiWfYivtZyk6N1RPxgLMa4gekKO2KP) 
+### [Dataset Download HERE](https://drive.google.com/drive/folders/1YvhiWfYivtZyk6N1RPxgLMa4gekKO2KP) 
 ```stata
 ************************************************************
 // install packages
@@ -82,22 +82,14 @@ Before we can map the data, we must align our economic unit of analysis with geo
 We perform a merge using a "crosswalk" file (`cw_cty_czone.dta`) to assign every US county to its corresponding Commuting Zone.
 ```stata
 // 1. Load ADH Data and Merge with Crosswalk
-use "${data}/workfile_china_long.dta", replace
-merge 1:m czone using "${data}/cw_cty_czone.dta", assert(2 3) keep(3) nogen
-
-// 2. Prepare FIPS codes for mapping
-// 'countyfips' is a helper to standardize ID variables
-countyfips, fips(cty_fips)
-cap drop _merge
-cap drop county
-gen county = cty_fips
-
-// 3. Plot Import Penetration
-************************************************************************************************************************
+cd "C:\Users\yang.liang\Downloads" // change this to your own download
+use "workfile_china_long.dta", replace
+// 2. Install packages
 // (you must first install the packages and the maptile files, see [instruction]:(https://michaelstepner.com/maptile/)
-// ssc install maptile
-// ssc install spmap
-// maptile_install using "http://files.michaelstepner.com/geo_county1990.zip"
-************************************************************************************************************************
-maptile d_tradeusch_pw, geo(county1990) fcolor(Reds) twopt(title(""))
+ssc install maptile, replace
+ssc install spmap, replace
+maptile_install using "http://files.michaelstepner.com/geo_cz1990.zip", replace
+// 2. Plot Import Penetration
+rename czone cz
+maptile d_tradeusch_pw, geo(cz1990) fcolor(Reds) twopt(title(""))
 ```
