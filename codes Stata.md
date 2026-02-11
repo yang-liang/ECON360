@@ -98,6 +98,7 @@ maptile d_tradeusch_pw, geo(cz1990) fcolor(Reds) twopt(title(""))
 The simple Ricardian model delivers three core predictions:
 1. Comparative Advantage: Countries trade more when their productivity differences are larger. Greater productivity differences → stronger comparative advantage → more trade.
 2. Gains from Trade
+
 | Theory Concept | Data Proxy                               |
 | -------------- | ---------------------------------------- |
 | Productivity   | GDP per capita (`gdpcap_o`, `gdpcap_d`)  |
