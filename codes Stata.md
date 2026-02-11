@@ -93,3 +93,73 @@ maptile_install using "http://files.michaelstepner.com/geo_cz1990.zip", replace
 rename czone cz
 maptile d_tradeusch_pw, geo(cz1990) fcolor(Reds) twopt(title(""))
 ```
+---
+### Empirical Testing of the Ricardian Model
+The simple Ricardian model delivers three core predictions:
+1. Comparative Advantage: Countries trade more when their productivity differences are larger. Greater productivity differences → stronger comparative advantage → more trade.
+2. Gains from Trade
+| Theory Concept | Data Proxy                               |
+| -------------- | ---------------------------------------- |
+| Productivity   | GDP per capita (`gdpcap_o`, `gdpcap_d`)  |
+| Trade          | Bilateral trade flow (`flow`)            |
+| Trade Costs    | Distance (`distw`), contiguity, language |
+| Income         | GDP per capita                           |
+| Openness       | Exports / GDP                            |
+
+**Hypothesis Testing 1**
+```stata
+// load the same gravity dataset//
+
+* Log trade
+gen ln_trade = ln(flow)
+
+* Log GDP per capita
+gen ln_gdppc_o = ln(gdpcap_o)
+gen ln_gdppc_d = ln(gdpcap_d)
+
+* Productivity difference
+gen diff_prod = abs(ln_gdppc_o - ln_gdppc_d)
+
+* Log distance
+gen ln_dist = ln(distw)
+
+// for the USA
+twoway (scatter ln_trade diff_prod if year==2005 & iso_o=="USA", msize(vsmall)) ///
+       (lfit ln_trade diff_prod if year==2005 & iso_o=="USA"), ///
+       title("Trade and Productivity Differences") ///
+       ytitle("Log Bilateral Trade") ///
+       xtitle("Absolute Log GDP per Capita Difference") ///
+       graphregion(color(white)) ///
+       scheme(s1mono)
+
+// for CHINA
+twoway (scatter ln_trade diff_prod if year==2005 & iso_o=="CHN", msize(vsmall)) ///
+       (lfit ln_trade diff_prod if year==2005 & iso_o=="CHN"), ///
+       title("Trade and Productivity Differences") ///
+       ytitle("Log Bilateral Trade") ///
+       xtitle("Absolute Log GDP per Capita Difference") ///
+       graphregion(color(white)) ///
+       scheme(s1mono)
+```
+
+**Hypothesis Testing 2**
+```stata
+collapse (sum) exports=flow ///
+         (mean) gdp_o gdpcap_o pop_o, ///
+         by(year iso_o)
+
+rename iso_o iso
+rename gdp_o gdp
+rename gdpcap_o gdpcap
+rename pop_o pop
+
+gen openness = exports / gdp * 100
+gen ln_open = ln(openness)
+gen ln_gdppc = ln(gdpcap)
+
+twoway (scatter ln_gdppc ln_open, msize(small)) ///
+       (lfit ln_gdppc ln_open), ///
+       title("Income and Trade Openness") ///
+       ytitle("Log GDP per Capita") ///
+       xtitle("Log Openness")
+```
