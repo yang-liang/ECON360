@@ -164,3 +164,128 @@ twoway (scatter ln_gdppc ln_open, msize(small)) ///
        ytitle("Log GDP per Capita") ///
        xtitle("Log Openness")
 ```
+---
+
+
+### Empirical Illustration of Export Composition (Heckscher–Ohlin Model)
+**Objective**
+This exercise uses 1995 HS92 trade data to examine whether countries export relatively more **labor-intensive** or **capital-intensive** goods.
+The goal is to provide a simple empirical illustration of the **Heckscher–Ohlin (H-O) model**, which predicts that countries export goods that intensively use their relatively abundant factors.
+In this example, we focus on the **United States (1995)** and visualize whether its exports are more capital-intensive or labor-intensive.
+**Data Sources**
+- **HS92 Trade Data (1995)**  
+  Bilateral export values by exporter, importer, and 6-digit HS product code.
+- **CEPII Country Codes**  
+  Country identifiers and ISO2/ISO3 codes.
+### 1. Merge Country Codes with Trade Data
+- Import CEPII country codes.
+- Merge with HS92 trade data using exporter country code.
+- Drop unmatched country observations.
+- Rename variables for clarity (e.g., `exporter`, `importer`, `export_value`, `hs92`).
+This ensures that each export observation is linked to its corresponding country information.
+### 2. Aggregate Trade Data
+Trade data are collapsed to obtain total export value by:
+- `exporter`
+- `exporter_iso3`
+- `hs92` (6-digit product code)
+This removes importer-level variation and focuses on total exports by country and product.
+### 3. Classify Products by Factor Intensity
+Products are grouped into labor- or capital-intensive industries based on HS chapter codes:
+#### Labor-Intensive Industries
+- HS 50–63 → Textiles & Apparel  
+- HS 64–67 → Footwear  
+#### Capital-Intensive Industries
+- HS 72–83 → Metals  
+- HS 84–85 → Machinery  
+- HS 87–89 → Transport Equipment  
+The HS chapter is extracted from the 6-digit HS92 code.
+### 4. Construct Export Shares
+For each exporter:
+1. Sum export values by factor-intensity type.
+2. Compute total exports.
+3. Calculate export shares:
+
+\[
+\text{Export Share}_{i,t} = 
+\frac{\text{Exports of type}}{\text{Total exports}}
+\]
+This generates two shares per country:
+- Labor-intensive export share
+- Capital-intensive export share
+### Interpretation
+If the United States displays a larger share of capital-intensive exports, this is consistent with:
+- The U.S. being relatively capital-abundant.
+- The H-O model prediction that capital-abundant countries export capital-intensive goods.
+This exercise demonstrates how trade data alone can provide a simple empirical illustration of comparative advantage.
+---
+```stata
+set more off
+clear all
+
+global path "G:\My Drive\Class\International Economics\360\data\gravity\hands on gravity stata tutorial"
+
+import delimited "${path}\country_codes_V202102.csv", clear
+
+* merge with trade flows based on exporter's country #code
+rename country_code i // rename country_name to i (exporter) 
+merge 1:m i using "${path}\HS92_1995.dta" // for year 1995
+* check merge! 
+assert _merge==1 | _merge==3 // 1: only in master file (country codes), 2: only in using (trade flows), 3: matched in both
+
+drop if _merge==1   // drop country codes with no trade
+drop _merge
+
+* this means that we have successfully merged the trade flows with country codes, and we can proceed with our analysis.
+
+* data cleaning and rename varialbes for easier interpretation
+rename i exporter
+rename j importer
+
+rename country_name_full exporter_name
+rename country_name_abbreviation exporter_abbrev
+rename iso_2digit_alpha exporter_iso2
+rename iso_3digit_alpha exporter_iso3
+
+rename v export_value
+rename q quantity
+rename k hs92
+describe
+
+* collapse the data to get total export value by exporter, exporter iso3 code, and hs92 code
+collapse (sum) export_value, by(exporter exporter_iso3 hs92)
+
+/* 
+  Labor-intensive:
+  HS 50–63 → Textiles & Apparel
+  HS 64–67 → Footwear
+  Capital-intensive:
+  HS 84–85 → Machinery
+  HS 87–89 → Transport equipment
+  HS 72–83 → Metals 
+*/
+
+gen hs_chapter = floor(hs92/10000)
+
+gen labor_intensive = inrange(hs_chapter,50,67)
+gen capital_intensive = inrange(hs_chapter,72,89)
+
+* collapse the data to get total export value by exporter, labor_intensive, and capital_intensive
+keep if labor_intensive==1 | capital_intensive==1
+gen type = labor_intensive*1 + capital_intensive*2 // 1 for labor-intensive, 2 for capital-intensive
+collapse (sum) export_value, by(exporter type)
+
+* calculate the share of labor-intensive and capital-intensive exports for each exporter
+bysort exporter: egen total_exports = total(export_value)
+gen export_share = export_value / total_exports
+
+label define typelab 1 "Labor-Intensive" 2 "Capital-Intensive"
+label values type typelab
+
+graph bar export_share if exporter==842, ///
+    over(type) ///
+    title("US Export Composition (1995)") ///
+    subtitle("1= Labor-Intensive vs 2= Capital-Intensive") ///
+    ytitle("Share of Total Exports") ///
+    blabel(bar, format(%4.2f))
+```
+---
