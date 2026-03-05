@@ -289,3 +289,159 @@ graph bar export_share if exporter==842, ///
     blabel(bar, format(%4.2f))
 ```
 ---
+---
+
+### Krugman Model (New Trade Theory)
+
+The Krugman (1980) model departs from classical trade theory by introducing **increasing returns to scale** and **monopolistic competition**. Unlike Ricardian or H-O models, trade arises here even between identical countries — driven by love-of-variety preferences and economies of scale, not factor endowments or productivity differences.
+
+The four visualizations below illustrate the model's core mechanisms:
+
+| Mechanism | What it shows |
+|---|---|
+| Gains from variety | More trade → more varieties, lower price index |
+| Increasing returns | Trade expands firm scale, reducing average cost |
+| Pro-competitive effect | Greater market integration → lower markups |
+| Melitz selection | Trade raises productivity cutoff, reallocates market share |
+
+---
+
+#### Figure 1: Gains from Trade — Variety and Price Index
+
+As trade costs fall (more openness), consumers gain access to more varieties (`N`) and face a lower aggregate price index (`P`). This is the central welfare result of the Krugman model: gains from trade come through variety, not just efficiency.
+
+```stata
+* -------------------------------------------------------
+* Figure 1: Variety and Price Index vs. Trade Costs
+* Simulates how N (varieties) and P (price index) respond
+* to changes in trade costs under the Krugman (1980) model
+* -------------------------------------------------------
+
+clear
+set obs 101
+gen tau = 1 + (_n-1)*0.04   // trade cost index: tau=1 (free trade) to ~5 (autarky)
+
+* Toy functional forms consistent with Krugman predictions:
+* N falls in tau (fewer varieties as trade gets costly)
+* P rises in tau (higher price index when less open)
+gen N = 200/(tau^1.2) + 10
+gen P = tau^0.6
+
+twoway ///
+    (line N tau, yaxis(1) lwidth(medthick)) ///
+    (line P tau, yaxis(2) lwidth(medthick) lpattern(dash)), ///
+    xtitle("Trade costs τ (higher = less open)") ///
+    ytitle("Number of varieties N", axis(1)) ///
+    ytitle("Price index P", axis(2)) ///
+    title("Krugman-style gains from trade: variety up, price index down") ///
+    legend(order(1 "Varieties N" 2 "Price index P") pos(6) ring(0)) ///
+    scheme(s2mono)
+```
+
+---
+
+#### Figure 2: Increasing Returns to Scale — Autarky vs. Trade Scale
+
+Firms face a standard U-shaped average cost curve: `AC(q) = F/q + c`, where `F` is a fixed cost and `c` is marginal cost. Under autarky, firms produce at a smaller scale (`qA`). Trade integration expands market size, allowing firms to move down the average cost curve to `qT` — a direct pro-efficiency gain.
+
+```stata
+* -------------------------------------------------------
+* Figure 2: Average Cost Curve with Scale Effects
+* Shows how trade shifts firm output from autarky (qA)
+* to trade scale (qT), lowering average cost via IRS
+* -------------------------------------------------------
+
+clear
+set obs 200
+gen q = _n                  // firm output from 1 to 200
+
+* Cost parameters
+scalar F = 200              // fixed cost (entry/overhead)
+scalar c = 5                // marginal cost
+
+gen AC = F/q + c            // average cost: declining in output (IRS)
+
+* Scale benchmarks
+scalar qA = 25              // autarky equilibrium scale
+scalar qT = 80              // trade equilibrium scale (larger market)
+
+twoway ///
+    (line AC q, lwidth(medthick)) ///
+    (function y=., range(1 200)), ///
+    xline(`=qA' `=qT', lpattern(dash) lwidth(medthick)) ///
+    text(`=F/qA + c' `=qA' "Autarky scale", place(e)) ///
+    text(`=F/qT + c' `=qT' "Trade scale", place(e)) ///
+    xtitle("Firm output q") ///
+    ytitle("Average cost AC(q)") ///
+    title("Increasing returns: trade expands scale, lowers average cost") ///
+    legend(off) scheme(s2mono)
+```
+
+---
+
+#### Figure 3: Pro-Competitive Effect — Markups and Demand Elasticity
+
+Under CES monopolistic competition, the markup is `μ = ε/(ε−1)`, where `ε` is the elasticity of residual demand. The standard Krugman model assumes a constant `ε`, producing a fixed markup. This graph shows that when trade increases the effective elasticity of demand (as in variable-markup extensions), markups fall — a *pro-competitive* effect beyond the baseline model.
+
+```stata
+* -------------------------------------------------------
+* Figure 3: Markup as a Function of Demand Elasticity
+* Illustrates how tougher competition (higher ε) compresses
+* markups — relevant for pro-competitive extensions of Krugman
+* -------------------------------------------------------
+
+clear
+set obs 200
+gen eps = 1.1 + (_n-1)*0.05    // demand elasticity ε: from 1.1 to ~11
+
+gen mu = eps/(eps-1)            // CES markup formula: μ = ε/(ε−1)
+                                // as ε → ∞, μ → 1 (perfect competition)
+                                // as ε → 1, μ → ∞ (monopoly power)
+
+twoway (line mu eps, lwidth(medthick)), ///
+    yline(1, lpattern(dot)) ///
+    xtitle("Residual demand elasticity ε") ///
+    ytitle("Markup μ = ε/(ε-1)") ///
+    title("Markups fall when demand becomes more elastic") ///
+    note("Dotted line at μ=1 = perfect competition benchmark" ///
+         "Use to discuss pro-competitive effects beyond constant-markup CES") ///
+    legend(off) scheme(s2mono)
+```
+
+---
+
+#### Figure 4: Melitz Selection — Productivity Cutoffs Under Autarky vs. Trade
+
+The Melitz (2003) extension of Krugman introduces firm-level heterogeneity in productivity (`φ`). Only firms above a productivity cutoff survive. Trade raises the cutoff — less productive firms exit, while high-productivity firms expand into export markets. This *reallocation effect* raises aggregate productivity even if no individual firm becomes more productive.
+
+```stata
+* -------------------------------------------------------
+* Figure 4: Melitz Firm Selection — Productivity Distribution
+* Simulates 5,000 firms with log-normal productivity draws
+* and shows which firms survive under autarky vs. trade
+* Trade raises the cutoff φ, driving out the least productive firms
+* -------------------------------------------------------
+
+clear
+set obs 5000
+set seed 1
+gen phi = exp(rnormal(0, 0.6))  // log-normal productivity distribution
+
+* Survival cutoffs
+scalar phiA = 0.9               // autarky cutoff: firms with φ ≥ phiA survive
+scalar phiT = 1.2               // trade cutoff: higher threshold due to import competition
+
+gen surviveA = phi >= phiA      // indicator: survives under autarky
+gen surviveT = phi >= phiT      // indicator: survives under trade (stricter)
+
+twoway ///
+    (hist phi if surviveA, width(0.1) fcolor(none) lwidth(medthick)) ///
+    (hist phi if surviveT, width(0.1) fcolor(none) lpattern(dash) lwidth(medthick)), ///
+    xline(`=phiA' `=phiT', lpattern(dot)) ///
+    xtitle("Firm productivity φ") ///
+    ytitle("Count") ///
+    title("Melitz selection: trade raises cutoff, reallocates toward higher φ") ///
+    note("Left xline = autarky cutoff (φ=0.9), Right xline = trade cutoff (φ=1.2)") ///
+    legend(order(1 "Autarky survivors" 2 "Trade survivors") pos(6) ring(0)) ///
+    scheme(s2mono)
+```
